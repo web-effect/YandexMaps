@@ -1,6 +1,6 @@
 <?php
 // Сниппет Yandex-Карта со своими иконками-маркерами + возможность по клику отключать определённые типы гео-объектов
-
+//if(isset($_REQUEST['ymJSON']))$modx->log(MODX_LOG_LEVEL_WARN,'yaSnippet run');
 $YandexMaps = $modx->getService('yandexmaps','YandexMaps',$modx->getOption('yandexmaps_core_path',null,$modx->getOption('core_path').'components/yandexmaps/').'model/yandexmaps/',$scriptProperties);
 $YandexMaps->initialize($modx->context->key, $scriptProperties);
 
@@ -15,7 +15,9 @@ $tplFiltersItemsWrapper = $modx->getOption('tplFiltersItemsWrapper', $scriptProp
 $tplFiltersItems = $modx->getOption('tplFiltersItems', $scriptProperties, 'tpl.yandexMaps.filtersItems'); // шаблон вывода ссылок фильтров для отображения/скрытия объектов на карте
 
 $idMap = $modx->getOption('idMap', $scriptProperties, 'yandexMap'); // id карты для html разметки и JS инициализации
+if(!isset($_REQUEST['ymJSON']))$_SESSION[$idMap]=$scriptProperties;
 $centerCoords = $modx->getOption('centerCoords', $scriptProperties, '51.1305,71.4120'); // координаты для центра карты '55.753565715196416,37.62001016381833'
+
 $zoom = $modx->getOption('zoom', $scriptProperties, '14'); // зум (приближение)
 $checkZoomRange = $modx->getOption('checkZoomRange', $scriptProperties, true); // ставить зум (приближение) так, чтобы были видны все имеющиеся на карте объекты
 $addressPrefix = $modx->getOption('addressPrefix', $scriptProperties, ''); // префикс в начало адреса.. в случае если в TV параметре адреса указаны без указания страны и города
@@ -24,11 +26,18 @@ $tvCoords = $modx->getOption('tvCoords', $scriptProperties, ''); // имя TV п
 
 $objectsTypesJSON = $modx->getOption('objectsTypesJSON', $scriptProperties, ''); // JSON строка с типами объектов, родительскими id, тайтлами, иконками или пресетами, а также субфильтрами по TV (и назначение каждому варианту ответа иконки или пресета)
 
+$geoObjectsForYandexMapArrayJSON = $modx->getOption('geoObjectsForYandexMapArrayJSON', $scriptProperties, '');
+/*$geoObjectsForYandexMapArrayJSON = str_replace("\n\r","<br>",$geoObjectsForYandexMapArrayJSON);
+var_dump(json_encode($geoObjectsForYandexMapArrayJSON));*/
+$openBaloonsOnStart = $modx->getOption('openBaloonsOnStart', $scriptProperties, 0);
+
 $id = $modx->getOption('id', $scriptProperties, $modx->resource->get('id') ); // id ресурса для вызова одиночного объекта на карте
+
 $markerIcon = $modx->getOption('markerIcon', $scriptProperties, ''); // иконка для одиночного объекта (например: "/images/map_marker.png")
 $markerPreset = $modx->getOption('markerPreset', $scriptProperties, 'islands#redDotIcon'); // ключ стиля для одиночного объекта (например: "islands#redClusterIcons" или "islands#violetDotIcon")
 $markerPresetText = $modx->getOption('markerPresetText', $scriptProperties, ''); // текст для preset (для одиночного объекта)
 $markerPresetFieldText = $modx->getOption('markerPresetFieldText', $scriptProperties, ''); // поле, откуда извлекать текст для preset (для одиночного объекта)
+$Layouts = $modx->getOption('Layouts', $scriptProperties, '');
 
 $fieldForBalloonContent = $modx->getOption('fieldForBalloonContent', $scriptProperties, ''); // какое поле ресурса использовать для описания в balloon (content, introtext, description, longtitle, pagetitle)
 $fieldForHint = $modx->getOption('fieldForHint', $scriptProperties, ''); // какое поле ресурса использовать для подсказки при наведении на объект (introtext, description, menutitle, longtitle, pagetitle)
@@ -482,8 +491,16 @@ if( isset($id) AND !count($geoObjectsForYandexMapArray) ) {
 
 
 // >> Если запрос к сниппету был передан из формы, то принтим JSON строку для Яндекс Карты и убиваем рендер всего остального
+//var_dump($geoObjectsForYandexMapArrayJSON);
 if(isset($_REQUEST['ym']) OR $_REQUEST['ymJSON']) {
 	//print_r( json_encode( array('type' => 'FeatureCollection', 'features' => str_replace('"',"'",$geoObjectsForYandexMapArray) ) , JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE ) );
+	if(!empty($geoObjectsForYandexMapArrayJSON))
+	{
+		$result = $modx->toJSON( array('type' => 'FeatureCollection', 'features' => is_string($geoObjectsForYandexMapArrayJSON)?$modx->fromJSON($geoObjectsForYandexMapArrayJSON):$geoObjectsForYandexMapArrayJSON ) );
+	    print_r($result);
+	    //if(isset($_REQUEST['ymJSON']))$modx->log(MODX_LOG_LEVEL_WARN,$result);
+	    die();
+	}
 	print_r( $modx->toJSON( array('type' => 'FeatureCollection', 'features' => $geoObjectsForYandexMapArray ) ) );
 	die;
 }
@@ -584,11 +601,20 @@ if(count($objectsTypes) && $showFilter) {
 
 
 // >> Рендерим чанк "tpl"
+if(is_array($Layouts))
+{
+	foreach($Layouts as &$Layout)
+	{
+		$Layout = str_replace(array("\n","\t"),'',$Layout);
+	}
+	$Layouts=$modx->toJSON($Layouts);
+}
 $tplParams = array(
 		'idMap' => $idMap,
-		'centerCoords' => '['.$centerCoords.']',
+		'centerCoords' => '[ '.$centerCoords.' ]',
 		'zoom' => $zoom,
 		'checkZoomRange' => $checkZoomRange,
+		'openBaloonsOnStart' => $openBaloonsOnStart,
 		'styleMapBlock' => $styleMapBlock,
 		'styleFiltersBlock' => $styleFiltersBlock,
 		'classMapBlock' => $classMapBlock,
@@ -599,7 +625,12 @@ $tplParams = array(
 		'goToRes' => $goToRes ? $goToRes : '0',
 		'goToResBlank' => $goToResBlank ? $goToResBlank : '0',
 		'goToJS' => $goToJS!='' ? $goToJS : '0',
+		'Layouts'=> $Layouts?str_replace(array("\n","\t"),'',$Layouts):'{}',
+		'Clusterize'=> $Clusterize?str_replace(array("\n","\t"),'',$Clusterize):'{}',
+		'jsonObjectsMode' => empty($geoObjectsForYandexMapArrayJSON)?'false':'true'
 	);
+	
+$tplParams['yamapScript'] = $pdo->getChunk('tpl.YandexMaps.js', $tplParams);
 
 return $pdo->getChunk($tpl, $tplParams);
 // << Рендерим чанк "tpl"
