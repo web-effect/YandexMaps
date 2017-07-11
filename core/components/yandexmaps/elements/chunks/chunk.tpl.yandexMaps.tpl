@@ -96,87 +96,14 @@ ymaps.ready()
 				controls: ['zoomControl']
 			});
 		
-		myMap[[+idMap]].controls.add(new ymaps.control.TypeSelector({ options: { position: { left: 10, top: 10 }}}));
-		
-		/*
-		myPlacemark = new ymaps.Placemark(myMap[[+idMap]].getCenter(), {
-			iconContent: 'Собственный значок метки',
-			hintContent: 'Собственный значок метки',
-			imageClass: 'search-map-result-view'
-		}, {
-			pointOverlay: ymaps.overlay.html.Placemark,
-			preset: 'twirl#stretchyIcon',
-			iconLayout: ymaps.templateLayoutFactory.createClass('<div class="$[properties.imageClass] _active"><div class="$[properties.imageClass]__icon"></div><div class="$[properties.imageClass]__title">[if properties.iconContent]<i>$[properties.iconContent]</i>[else]$[properties.hintContent][endif]</div></div>')
-			//iconContentLayout: ymaps.templateLayoutFactory.createClass( '<div style="width:auto; max-width:none; background-color:rgba(255,255,255,0.49);">[if properties.iconContent]<i>$[properties.iconContent]</i>[else]$[properties.hintContent][endif]</div>' )
-		});
-		
-		myMap[[+idMap]].geoObjects.add(myPlacemark);
-		
-		console.log( myPlacemark.getOverlay() );
-		
-		myPlacemark.getOverlay().then(function (overlay)
-		{
-			console.log( overlay.getElement().markerLayer );
-			console.log( overlay.markerLayer );
-			
-			ymaps.domEvent.manager
-			.add(overlay.markerLayer.get(0), 'mouseenter', function (event) {
-				console.log(event.get('type')); // click
-			});
-		});
-		*/
-		
-		
-		
-		
-		
-		/*
-		domEventsGroup = ymaps.domEvent.manager.group(myPlacemark);
-		domEventsGroup.add('mouseenter', function (e)
-		{
-			console.log(e.get('type'));
-			
-			domEventsGroup.removeAll();
-		});
-		*/
-		
-		/*
-		myMap[[+idMap]].myPlacemark.events.add('mouseenter', function (e)
-		{
-			console.log( e );
-			
-		});
-		*/
-		
-		
-		
+		myMap[[+idMap]].controls.add(new ymaps.control.TypeSelector({options: { position: { left: 10, top: 10 }}}));
 		
 		
 		$.getJSON( ymFormAction , "ymJSON=1" ).done( function (json) {
 			window.geoObjects = ymaps.geoQuery(json);
 			
-			window.clusters = geoObjects.search("geometry.type == 'Point'").clusterize({ preset: 'islands#invertedVioletClusterIcons'});
+			window.clusters = geoObjects.search("geometry.type == 'Point'").clusterize({preset: 'islands#invertedVioletClusterIcons'});
 			myMap[[+idMap]].geoObjects.add(clusters);
-			
-			
-			geoObjects.then(function () {
-				//window.placemarks = geoObjects.search("geometry.type == 'Point'");
-				
-				//myMap[[+idMap]].geoObjects.options.unsetAll();
-				myMap[[+idMap]].geoObjects.options.set({
-					pointOverlay: ymaps.overlay.html.Placemark,
-					preset: 'twirl#stretchyIcon',
-					pane: 'overlaps',
-					iconLayout: ymaps.templateLayoutFactory.createClass('<div id="marker_$[properties.modx_id]" class="$[properties.imageClass] _active"><div class="$[properties.imageClass]__overlay"></div><div class="$[properties.imageClass]__icon"></div><div class="$[properties.imageClass]__title">[if properties.iconContent]<i>$[properties.iconContent]</i>[else]$[properties.hintContent][endif]</div></div>')
-				});
-				
-				//myMap[[+idMap]].geoObjects.events.add('click', function (e) {
-				//	var target = e.get('target');
-				//	console.log( target );
-				//});
-			});
-			
-			
 			
 			[[+checkZoomRange:is=`0`:or:is=`false`:or:is=``:then=` `:else=`
 				geoObjects.applyBoundsToMap(myMap[[+idMap]], {
