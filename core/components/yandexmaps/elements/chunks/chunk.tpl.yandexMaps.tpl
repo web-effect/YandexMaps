@@ -89,6 +89,7 @@ var ymFormAction = $(ymFormId).attr('action');
 
 ymaps.ready()
 	.done(function (ymaps) {
+	    var jsonObjectsMode = [[+jsonObjectsMode]];
 		var mapCenter[[+idMap]] = [[+centerCoords]],
 			myMap[[+idMap]] = new ymaps.Map('[[+idMap]]', {
 				center: mapCenter[[+idMap]],
@@ -96,21 +97,49 @@ ymaps.ready()
 				controls: ['zoomControl']
 			});
 		
-		myMap[[+idMap]].controls.add(new ymaps.control.TypeSelector({options: { position: { left: 10, top: 10 }}}));
+		myMap[[+idMap]].controls.add(new ymaps.control.TypeSelector({ options: { position: { left: 10, top: 10 }}}));
 		
-		
+		var openBaloonsOnStart = [[+openBaloonsOnStart]];
+		var Layouts = [[+Layouts]];
+		for(var layout in Layouts)
+		{
+		    if(!Layouts.hasOwnProperty(layout))continue;
+		    ymaps.layout.storage.add(layout, ymaps.templateLayoutFactory.createClass(Layouts[layout]));
+		}
+        
 		$.getJSON( ymFormAction , "ymJSON=1" ).done( function (json) {
+		    //console.log(json);
 			window.geoObjects = ymaps.geoQuery(json);
-			
-			window.clusters = geoObjects.search("geometry.type == 'Point'").clusterize({preset: 'islands#invertedVioletClusterIcons'});
-			myMap[[+idMap]].geoObjects.add(clusters);
-			
+		    if(jsonObjectsMode)
+		    {
+		        window.clusters = geoObjects.search("geometry.type == 'Point'").clusterize([[+Clusterize]]);
+                myMap[[+idMap]].geoObjects.add(clusters);
+		        //window.geoObjects.addToMap(myMap[[+idMap]]);
+		    }
+			else
+			{
+			    window.clusters = geoObjects.search("geometry.type == 'Point'").clusterize({ preset: 'islands#invertedVioletClusterIcons'});
+    			myMap[[+idMap]].geoObjects.add(clusters);
+    			
+    			
+    			geoObjects.then(function () {
+    
+    				myMap[[+idMap]].geoObjects.options.set({
+    					pointOverlay: ymaps.overlay.html.Placemark,
+    					preset: 'twirl#stretchyIcon',
+    					pane: 'overlaps',
+    					iconLayout: ymaps.templateLayoutFactory.createClass('<div id="marker_$[properties.modx_id]" class="$[properties.imageClass] _active"><div class="$[properties.imageClass]__overlay"></div><div class="$[properties.imageClass]__icon"></div><div class="$[properties.imageClass]__title">[if properties.iconContent]<i>$[properties.iconContent]</i>[else]$[properties.hintContent][endif]</div></div>')
+    				});
+    			});
+			}
+			if(openBaloonsOnStart)geoObjects.get(0).balloon.open();
+			myMap[[+idMap]].behaviors.disable('scrollZoom');
 			[[+checkZoomRange:is=`0`:or:is=`false`:or:is=``:then=` `:else=`
 				geoObjects.applyBoundsToMap(myMap[[+idMap]], {
 					checkZoomRange: true
 				});
 			`]]
-		});
+		}).fail(function (){console.log(this,jsonObjectsMode);});
 		
 		
 		// >> Обработка события клика на маркере
@@ -146,7 +175,6 @@ ymaps.ready()
 				}
 			}
 		});
-		// << Обработка события клика на маркере
 		
 		
 		[[+filtersFormItems:notempty=`
