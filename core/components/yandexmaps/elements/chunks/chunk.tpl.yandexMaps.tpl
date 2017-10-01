@@ -4,7 +4,6 @@ if(typeof jQuery == "undefined"){
 }
 
 if(typeof ymaps == "undefined"){
-	//document.write('<script type="text/javascript" src="//api-maps.yandex.ru/2.1/?lang=ru_RU" ></'+'script>');
 	document.write('<script type="text/javascript" src="//api-maps.yandex.ru/2.1/?lang=ru_RU&load=Map,Placemark,GeoObjectCollection,map.addon.balloon,geoObject.addon.balloon,package.controls,templateLayoutFactory,overlay.html.Placemark" ></'+'script>');
 }
 </script>
@@ -86,10 +85,16 @@ margin-left: -21px;
 <script type="text/javascript">
 var ymFormId = '#[[+idFiltersForm]]';
 var ymFormAction = $(ymFormId).attr('action');
+var ymFormActionParams = "ymJSON=1";
 
 ymaps.ready()
 	.done(function (ymaps) {
 	    var jsonObjectsMode = [[+jsonObjectsMode]];
+	    if(jsonObjectsMode)
+	    {
+	    	ymFormAction="assets/components/yandexmaps/connector.php";
+	    	ymFormActionParams = "action=getmap&id=[[+idMap]]&resource=[[*id]]";
+	    }
 		var mapCenter[[+idMap]] = [[+centerCoords]],
 			myMap[[+idMap]] = new ymaps.Map('[[+idMap]]', {
 				center: mapCenter[[+idMap]],
@@ -106,15 +111,16 @@ ymaps.ready()
 		    if(!Layouts.hasOwnProperty(layout))continue;
 		    ymaps.layout.storage.add(layout, ymaps.templateLayoutFactory.createClass(Layouts[layout]));
 		}
+		if(typeof(window['[[+idMap]]Extend'])==='function')window['[[+idMap]]Extend'](myMap[[+idMap]]);
         
-		$.getJSON( ymFormAction , "ymJSON=1" ).done( function (json) {
-		    //console.log(json);
+		$.getJSON( ymFormAction , ymFormActionParams ).done( function (json) {
+		    /*console.log(json);*/
 			window.geoObjects = ymaps.geoQuery(json);
 		    if(jsonObjectsMode)
 		    {
 		        window.clusters = geoObjects.search("geometry.type == 'Point'").clusterize([[+Clusterize]]);
                 myMap[[+idMap]].geoObjects.add(clusters);
-		        //window.geoObjects.addToMap(myMap[[+idMap]]);
+		        /*window.geoObjects.addToMap(myMap[[+idMap]]);*/
 		    }
 			else
 			{
@@ -142,7 +148,7 @@ ymaps.ready()
 		}).fail(function (){console.log(this,jsonObjectsMode);});
 		
 		
-		// >> Обработка события клика на маркере
+		/* >> Обработка события клика на маркере*/
 		myMap[[+idMap]].geoObjects.events.add('click', function (e)
 		{
 			var object = e.get('target');
@@ -156,8 +162,7 @@ ymaps.ready()
 					&& object.properties.get(0).modx_id !== 'null' )
 				{
 					var modx_id = object.properties.get(0).modx_id;
-					//console.log( modx_id );
-					
+
 					if( goToJS !== 'undefined' && goToJS !== 'null' && goToJS !== '' && goToJS !== 0 )
 					{
 						[[+goToJS:is=`0`:or:is=`false`:or:is=``:then=` `:else=`[[+goToJS]]`]]
@@ -171,7 +176,7 @@ ymaps.ready()
 						window.location.href = '[[++site_url]]index.php?id=' + modx_id;
 					}
 					
-					e.preventDefault(); // остановим открытие балуна
+					e.preventDefault(); 
 				}
 			}
 		});
@@ -180,17 +185,17 @@ ymaps.ready()
 		[[+filtersFormItems:notempty=`
 		$(".[[+classFiltersItem]]").click(function() {
 			var thisItem = this;
-			var filtersItemId = $(this).attr('id'); // id кликнутого элемента
+			var filtersItemId = $(this).attr('id'); /* id кликнутого элемента*/
 			
-			$(ymFormId).find('.loader').show(); // покажем лоадер
+			$(ymFormId).find('.loader').show(); /* покажем лоадер*/
 			
-			// >> Если нужно скрыть элементы
+			/* >> Если нужно скрыть элементы*/
 			if( $(thisItem).hasClass('ymFiltersItemHide') )
 			{
-				$(ymFormId).find('#checkbox_' + filtersItemId).val('0'); // ставим input[type=hidden] - val
-				$(thisItem).removeClass('ymFiltersItemHide').addClass('ymFiltersItemShow'); // ставим нужный класс
+				$(ymFormId).find('#checkbox_' + filtersItemId).val('0'); /* ставим input[type=hidden] - val*/
+				$(thisItem).removeClass('ymFiltersItemHide').addClass('ymFiltersItemShow'); /* ставим нужный класс*/
 				
-				// >> Собираем строку из формы для передачи аяксом
+				/* >> Собираем строку из формы для передачи аяксом*/
 				var ymFormData = $(ymFormId).serializeArray(), ymFormDataString = '';
 				
 				$.each(ymFormData, function(i_1, val_1) {
@@ -202,7 +207,7 @@ ymaps.ready()
 						}
 					});
 				});
-				// << Собираем строку из формы для передачи аяксом
+				/* << Собираем строку из формы для передачи аяксом*/
 				
 				$.getJSON( ymFormAction , ymFormDataString )
 					.done( function (json)
@@ -215,23 +220,23 @@ ymaps.ready()
 							checkZoomRange: true
 						});
 						
-						geoObjects.remove(geoObjects2).removeFromMap(myMap[[+idMap]]); // удаляем текущие объекты с карты
+						geoObjects.remove(geoObjects2).removeFromMap(myMap[[+idMap]]); /* удаляем текущие объекты с карты*/
 						myMap[[+idMap]].geoObjects.remove(clusters);
-						geoObjects = geoObjects2; // колдуем
-						clusters = clusters2; // колдуем
-						geoObjects2=''; // колдуем
-						clusters2=''; // колдуем
+						geoObjects = geoObjects2; /* колдуем*/
+						clusters = clusters2; /* колдуем*/
+						geoObjects2=''; /* колдуем*/
+						clusters2=''; /* колдуем*/
 						
-						$(ymFormId).find('.loader').hide(); // спрячем лоадер
-						$(thisItem).parent().find('.ymFiltersWrapper').slideUp(); // прячем подпункты, если есть..
+						$(ymFormId).find('.loader').hide(); /* спрячем лоадер*/
+						$(thisItem).parent().find('.ymFiltersWrapper').slideUp(); /* прячем подпункты, если есть..*/
 					});
-			} // << Если нужно скрыть элементы
+			} /* << Если нужно скрыть элементы*/
 			else
-			{ // >> Если нужно показать элементы
-				$(ymFormId).find('#checkbox_' + filtersItemId).val('1'); // ставим input[type=hidden] - val
-				$(thisItem).removeClass('ymFiltersItemShow').addClass('ymFiltersItemHide'); // ставим нужный класс
+			{ /* >> Если нужно показать элементы*/
+				$(ymFormId).find('#checkbox_' + filtersItemId).val('1'); /* ставим input[type=hidden] - val*/
+				$(thisItem).removeClass('ymFiltersItemShow').addClass('ymFiltersItemHide'); /* ставим нужный класс*/
 				
-				// >> Собираем строку из формы для передачи аяксом
+				/* >> Собираем строку из формы для передачи аяксом*/
 				var ymFormData = $(ymFormId).serializeArray(), ymFormDataString = '';
 				
 				$.each(ymFormData, function(i_1, val_1) {
@@ -243,7 +248,7 @@ ymaps.ready()
 						}
 					});
 				});
-				// << Собираем строку из формы для передачи аяксом
+				/* << Собираем строку из формы для передачи аяксом*/
 				
 				$.getJSON( ymFormAction , ymFormDataString )
 					.done( function (json)
@@ -256,18 +261,18 @@ ymaps.ready()
 							checkZoomRange: true
 						});
 						
-						geoObjects.remove(geoObjects2).removeFromMap(myMap[[+idMap]]); // удаляем текущие объекты с карты
+						geoObjects.remove(geoObjects2).removeFromMap(myMap[[+idMap]]); /* удаляем текущие объекты с карты*/
 						myMap[[+idMap]].geoObjects.remove(clusters);
-						geoObjects = geoObjects2; // колдуем
-						clusters = clusters2; // колдуем
-						geoObjects2=''; // колдуем
-						clusters2=''; // колдуем
+						geoObjects = geoObjects2; /* колдуем*/
+						clusters = clusters2; /* колдуем*/
+						geoObjects2=''; /* колдуем*/
+						clusters2=''; /* колдуем*/
 						
-						$(ymFormId).find('.loader').hide(); // спрячем лоадер
-						$(thisItem).parent().find('.ymFiltersWrapper').slideDown(); // покажем подпункты, если есть..
+						$(ymFormId).find('.loader').hide(); /* спрячем лоадер*/
+						$(thisItem).parent().find('.ymFiltersWrapper').slideDown(); /* покажем подпункты, если есть..*/
 					});
 			}
-			// << Если нужно показать элементы
+			/* << Если нужно показать элементы*/
 		});
 		`]]
 	});
